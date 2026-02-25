@@ -6,9 +6,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
 class Lox {
-    static void main(String[] args) {
+    static void main(String[] args) throws IOException {
         if (args.length > 1) {
             System.out.println("run jlox [script.jl]");
             System.exit(64);
@@ -38,12 +39,23 @@ class Lox {
         }
     }
 
-    private static void run() {
-        Scanner scanner = new Scanner();
+    private static void run(String source) {
+        Scanner scanner = new Scanner(source);
         List<Token> ts = scanner.scanTokens();
 
         for (Token t : ts) {
             System.out.println(t);
         }
     }
+
+    // stubbed classes
+    private static class Scanner {
+        public Scanner(String source) {}
+
+        public List<Token> scanTokens() {
+            return List.of();
+        }
+    }
+
+    private static class Token {}
 }
