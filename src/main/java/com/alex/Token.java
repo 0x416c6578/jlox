@@ -15,6 +15,12 @@ public class Token {
 
     @Override
     public String toString() {
-        return String.format("%s %s %s", type, lexeme, literal);
+        return String.format("Tok{ %s '%s' %s }", type, lexeme, literal);
+    }
+
+    public String toCompactString() {
+        if (type == TokenType.EOF)
+            return "EOF";
+        return lexeme;
     }
 }

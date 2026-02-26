@@ -2,6 +2,7 @@ package com.alex;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.alex.TokenType.*;
 
@@ -29,6 +30,13 @@ public class Scanner {
         return tokens;
     }
 
+    static void main() {
+        Scanner s = new Scanner("!=())){}-");
+        System.out.println(s.scanTokens().stream()
+                .map(Token::toCompactString)
+                .collect(Collectors.joining(" ")));
+    }
+
     private void scanToken() {
         switch (advance()) {
             case '(': addToken(LEFT_PAREN); break;
@@ -41,10 +49,46 @@ public class Scanner {
             case '+': addToken(PLUS); break;
             case ';': addToken(SEMICOLON); break;
             case '*': addToken(STAR); break;
+            case '!': addToken(readAheadMatch('=') ? BANG_EQUAL : BANG); break;
+            case '=': addToken(readAheadMatch('=') ? EQUAL_EQUAL : EQUAL); break;
+            case '<': addToken(readAheadMatch('=') ? LESS_EQUAL : LESS); break;
+            case '>': addToken(readAheadMatch('=') ? GREATER_EQUAL : GREATER); break;
+            case '/':
+                if (readAheadMatch('/'))
+                    while (peek() != '\n' && !isEof()) advance();
+                else
+                    addToken(SLASH);
+                break;
+            case ' ':
+            case '\r':
+            case '\t':
+                break; // ignore all whitespace
+            case '\n': line++; break; // increment line counter when we hit a newline
             default: Lox.error(line, "Unexpected character: " + source.charAt(current));
         }
     }
 
+    /**
+     * Consume the next token conditionally on whether it matches expected, used for double-character lexemes
+     * @param expected Expected character to see next
+     * @return true if we matched
+     */
+    private boolean readAheadMatch(char expected) {
+        if (isEof()) return false;
+        if (source.charAt(current) != expected) return false;
+
+        advance();
+        return true;
+    }
+
+    private char peek() {
+        if (isEof()) return '\0';
+        return source.charAt(current);
+    }
+
+    /**
+     * Return the character under the current pointer, then advance the current pointer
+     */
     private char advance() {
         return source.charAt(current++);
     }
@@ -58,6 +102,9 @@ public class Scanner {
         tokens.add(new Token(t, text, lit, line));
     }
 
+    /**
+     * Returns true if we have hit the end of the source
+     */
     private boolean isEof() {
         return current >= source.length();
     }
