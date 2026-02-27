@@ -2,7 +2,7 @@ package com.alex;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 import static com.alex.TokenType.*;
 import static com.alex.ScannerUtils.*;
@@ -29,53 +29,50 @@ public class Scanner {
         }
 
         tokens.add(new Token(EOF, "", null, line));
-        return tokens;
-    }
-
-    static void main() {
-        Scanner s = new Scanner("!=())){}-\"Hello, world\" 123.313 12.");
-        System.out.println(s.scanTokens().stream()
-                .map(Token::toCompactString)
-                .collect(Collectors.joining("·")));
+        return List.copyOf(tokens);
     }
 
     private void scanToken() {
         char c = advance();
         switch (c) {
-            case '(': addToken(LEFT_PAREN); break;
-            case ')': addToken(RIGHT_PAREN); break;
-            case '{': addToken(LEFT_BRACE); break;
-            case '}': addToken(RIGHT_BRACE); break;
-            case ',': addToken(COMMA); break;
-            case '.': addToken(DOT); break;
-            case '-': addToken(MINUS); break;
-            case '+': addToken(PLUS); break;
-            case ';': addToken(SEMICOLON); break;
-            case '*': addToken(STAR); break;
-            case '!': addToken(readAheadMatch('=') ? BANG_EQUAL : BANG); break;
-            case '=': addToken(readAheadMatch('=') ? EQUAL_EQUAL : EQUAL); break;
-            case '<': addToken(readAheadMatch('=') ? LESS_EQUAL : LESS); break;
-            case '>': addToken(readAheadMatch('=') ? GREATER_EQUAL : GREATER); break;
-            case '/':
-                if (readAheadMatch('/'))
-                    while (peek() != '\n' && !isEof()) advance();
-                else
-                    addToken(SLASH);
-                break;
-            case ' ':
-            case '\r':
-            case '\t':
-                break; // ignore all whitespace
-            case '\n': line++; break; // increment line counter when we hit a newline
-            case '"': string(); break;
-            default:
+            case '(' -> addToken(LEFT_PAREN);
+            case ')' -> addToken(RIGHT_PAREN);
+            case '{' -> addToken(LEFT_BRACE);
+            case '}' -> addToken(RIGHT_BRACE);
+            case ',' -> addToken(COMMA);
+            case '.' -> addToken(DOT);
+            case '-' -> addToken(MINUS);
+            case '+' -> addToken(PLUS);
+            case ';' -> addToken(SEMICOLON);
+            case '*' -> addToken(STAR);
+            case '!' -> addToken(readAheadMatch('=') ? BANG_EQUAL : BANG);
+            case '=' -> addToken(readAheadMatch('=') ? EQUAL_EQUAL : EQUAL);
+            case '<' -> addToken(readAheadMatch('=') ? LESS_EQUAL : LESS);
+            case '>' -> addToken(readAheadMatch('=') ? GREATER_EQUAL : GREATER);
+            case '/' -> commentOrSlash();
+            case '\n' -> line++;
+            case '"' -> stringLiteral();
+            case ' ', '\t', '\r' -> { /* Ignore whitespace */ }
+            default -> {
                 if (isDigit(c)) {
                     number();
+                } else if (isAlpha(c)) {
+                    identifier();
                 } else {
                     Lox.error(line, "Unexpected character: " + source.charAt(current));
                 }
-                break;
+            }
         }
+    }
+
+    /**
+     * Handle comment or slash alternative
+     */
+    private void commentOrSlash() {
+        if (readAheadMatch('/'))
+            while (peek() != '\n' && !isEof()) advance();
+        else
+            addToken(SLASH);
     }
 
     /**
@@ -114,9 +111,9 @@ public class Scanner {
     }
 
     /**
-     * Consume a string (between ""), handling EOF case
+     * Consume a string (between ""), handling EOF case for unterminated string
      */
-    private void string() {
+    private void stringLiteral() {
         while (peek() != '"' && !isEof()) {
             if (peek() == '\n') line++;
             advance();
@@ -133,6 +130,9 @@ public class Scanner {
         addToken(STRING, source.substring(start+1, current-1));
     }
 
+    /**
+     * Consume a numerical literal
+     */
     private void number() {
         while (isDigit(peek())) advance();
 
@@ -143,6 +143,11 @@ public class Scanner {
         }
 
         addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
+    }
+
+    private void identifier() {
+        while (isAlphaNumeric(peek())) advance();
+        addToken(RESERVED_WORDS.getOrDefault(source.substring(start, current), IDENTIFIER));
     }
 
     private void addToken(TokenType t) {
@@ -160,4 +165,23 @@ public class Scanner {
     private boolean isEof() {
         return current >= source.length();
     }
+
+    static Map<String, TokenType> RESERVED_WORDS = Map.ofEntries(
+            Map.entry("and", AND),
+            Map.entry("class", CLASS),
+            Map.entry("else", ELSE),
+            Map.entry("false", FALSE),
+            Map.entry("for", FOR),
+            Map.entry("fun", FUN),
+            Map.entry("if", IF),
+            Map.entry("nil", NIL),
+            Map.entry("or", OR),
+            Map.entry("print", PRINT),
+            Map.entry("return", RETURN),
+            Map.entry("super", SUPER),
+            Map.entry("this", THIS),
+            Map.entry("true", TRUE),
+            Map.entry("var", VAR),
+            Map.entry("while", WHILE)
+    );
 }
