@@ -7,6 +7,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 class Lox {
     static boolean hadError = false;
@@ -46,11 +47,16 @@ class Lox {
 
     private static void run(String source) {
         Scanner scanner = new Scanner(source);
-        List<Token> ts = scanner.scanTokens();
+        var scanResult = scanner.scanTokens();
 
-        for (Token t : ts) {
-            System.out.println(t);
-        }
+        // Print any observed errors
+        scanResult.errors().forEach(
+                e -> error(e.line(), e.message())
+        );
+
+        System.out.println((scanResult.tokens().stream()
+                .map(Token::toString)
+                .collect(Collectors.joining("·"))));
     }
 
     static void error(int line, String message) {
@@ -58,7 +64,7 @@ class Lox {
     }
 
     private static void report(int line, String where, String message) {
-        System.out.printf("[line %d] Error %s: %s", line, where, message);
+        System.out.printf("[line %d] Error %s: %s\n", line, where, message);
         hadError = true;
     }
 }

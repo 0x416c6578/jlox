@@ -11,8 +11,11 @@ import static com.alex.ScannerUtils.*;
  * Scanner for the Lox interpreter
  */
 public class Scanner {
+    record ScanError(int line, String message) {}
+
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
+    private final List<ScanError> errors = new ArrayList<>();
     private int start = 0; // index into source to the first char in the current lexeme being scanned
     private int current = 0; // index into source to the character currently being considered
     private int line = 1; // line number we are currently on
@@ -21,7 +24,9 @@ public class Scanner {
         this.source = source;
     }
 
-    List<Token> scanTokens() {
+    record ScanResult(List<Token> tokens, List<ScanError> errors) {}
+
+    ScanResult scanTokens() {
         while (!isEof()) {
             // advance the start pointer to the current location
             start = current;
@@ -29,7 +34,7 @@ public class Scanner {
         }
 
         tokens.add(new Token(EOF, "", null, line));
-        return List.copyOf(tokens);
+        return new ScanResult(List.copyOf(tokens), List.copyOf(errors));
     }
 
     private void scanToken() {
@@ -59,7 +64,7 @@ public class Scanner {
                 } else if (isAlpha(c)) {
                     identifier();
                 } else {
-                    Lox.error(line, "Unexpected character: " + source.charAt(current));
+                    errors.add(new ScanError(line, "Unexpected character: " + c));
                 }
             }
         }
@@ -120,7 +125,7 @@ public class Scanner {
         }
 
         if (isEof()) {
-            Lox.error(line, "Unterminated string");
+            errors.add(new ScanError(line, "Unterminated string literal"));
             return;
         }
 
