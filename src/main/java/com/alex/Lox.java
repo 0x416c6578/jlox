@@ -1,5 +1,8 @@
 package com.alex;
 
+import com.alex.scanner.Scanner;
+import com.alex.scanner.Token;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

@@ -1,6 +1,7 @@
-package com.alex;
+package com.alex.scanner;
 
-import static com.alex.TokenType.*;
+import static com.alex.scanner.TokenType.EOF;
+import static com.alex.scanner.TokenType.IDENTIFIER;
 
 public record Token(TokenType type, String lexeme, Object literal, int line) {
     @Override

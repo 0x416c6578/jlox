@@ -1,16 +1,25 @@
-package com.alex;
+package com.alex.scanner.v2;
+
+import com.alex.scanner.TokenType;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import static com.alex.TokenType.*;
-import static com.alex.ScannerUtils.*;
+import static com.alex.scanner.ScannerUtils.*;
+import static com.alex.scanner.v2.Token.*;
+import static com.alex.scanner.v2.Token.T.*;
 
 /// Scanner for the Lox interpreter. The tokens of this language are found in [TokenType]
-public class Scanner {
-    record ScanError(Loc loc, String message) {}
-    record Loc(int line, int offset) {}
+public class ScannerV2 {
+    public record ScanError(Loc loc, String message) {
+        @Override
+        public String toString() {
+            return String.format("Scan error [%d:%d]: %s", loc.line(), loc.offset(), message);
+        }
+    }
+    public record Loc(int line, int offset) {}
 
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
@@ -21,20 +30,36 @@ public class Scanner {
     private int line = 1; // line number we are currently on
     private int lineOffset = 0; // offset into the current line, used for error reporting
 
-    Scanner(String source) {
+    public ScannerV2(String source) {
         this.source = source;
     }
 
-    record ScanResult(List<Token> tokens, List<ScanError> errors) {}
+    public record ScanResult(List<Token> tokens, List<ScanError> errors) {}
 
-    ScanResult scanTokens() {
+    static void main() {
+        ScannerV2 s = new ScannerV2("()hello world 123 123.45 \"string literal\" if else ! != = == < <= > >= / // comment");
+
+        ScanResult r = s.scanTokens();
+
+        // Print any observed errors
+        IO.print(r.errors().stream()
+                .map(ScanError::toString)
+                .collect(Collectors.joining("\n")) +
+                (r.errors().isEmpty() ? "" : "\n"));
+
+        IO.println((r.tokens().stream()
+                .map(Token::lexeme)
+                .collect(Collectors.joining("·"))));
+    }
+
+    public ScanResult scanTokens() {
         while (!isEof()) {
             // advance the start pointer to the current location
             start = current;
             scanToken();
         }
 
-        tokens.add(new Token(EOF, "", null, line));
+        tokens.add(EOF);
         return new ScanResult(List.copyOf(tokens), List.copyOf(errors));
     }
 
@@ -129,7 +154,7 @@ public class Scanner {
         advance();
 
         // extract the string literal contents without the quote marks
-        addToken(STRING, source.substring(start+1, current-1));
+        addToken(new StrLit(source.substring(start+1, current-1)));
     }
 
     /// Consume a numerical literal
@@ -142,21 +167,17 @@ public class Scanner {
             while (isDigit(peek())) advance();
         }
 
-        addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
+        addToken(new NumLit(Double.parseDouble(source.substring(start, current))));
     }
 
     private void identifier() {
         while (isAlphaNumeric(peek())) advance();
-        addToken(RESERVED_WORDS.getOrDefault(source.substring(start, current), IDENTIFIER));
+        String name = source.substring(start, current);
+        addToken(RESERVED_WORDS.getOrDefault(name, new Ident(name)));
     }
 
-    private void addToken(TokenType t) {
-        addToken(t, null);
-    }
-
-    private void addToken(TokenType t, Object lit) {
-        String text = source.substring(start, current);
-        tokens.add(new Token(t, text, lit, line));
+    private void addToken(Token t) {
+        tokens.add(t);
     }
 
     /// Returns true if we have hit the end of the source
@@ -164,7 +185,7 @@ public class Scanner {
         return current >= source.length();
     }
 
-    static Map<String, TokenType> RESERVED_WORDS = Map.ofEntries(
+    static Map<String, Token> RESERVED_WORDS = Map.ofEntries(
             Map.entry("and", AND),
             Map.entry("class", CLASS),
             Map.entry("else", ELSE),

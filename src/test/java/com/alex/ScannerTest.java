@@ -1,5 +1,8 @@
 package com.alex;
 
+import com.alex.scanner.Scanner;
+import com.alex.scanner.Token;
+import com.alex.scanner.TokenType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
