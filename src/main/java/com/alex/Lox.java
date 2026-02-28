@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.stream.Collectors;
 
 class Lox {
@@ -14,7 +13,7 @@ class Lox {
 
     static void main(String[] args) throws IOException {
         if (args.length > 1) {
-            System.out.println("run jlox [script.jl]");
+            IO.println("run jlox [script.jl]");
             System.exit(64);
         } else if (args.length == 1) {
             runFile(args[0]);
@@ -23,7 +22,7 @@ class Lox {
         }
     }
 
-    // run a lox file
+    /// Run a file
     private static void runFile(String path) throws IOException {
         byte[] bytes = Files.readAllBytes(Paths.get(path));
         run(new String(bytes, Charset.defaultCharset()));
@@ -31,13 +30,13 @@ class Lox {
         if (hadError) System.exit(65);
     }
 
-    // start interactive lox prompt
+    /// Start interactive prompt
     private static void runPrompt() throws IOException {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
         for (;;) {
-            System.out.println("> ");
+            IO.println("> ");
             String line = reader.readLine();
             if (line == null) break;
             run(line);
@@ -45,26 +44,23 @@ class Lox {
         }
     }
 
+    /// Run source code
     private static void run(String source) {
         Scanner scanner = new Scanner(source);
         var scanResult = scanner.scanTokens();
 
         // Print any observed errors
-        scanResult.errors().forEach(
-                e -> error(e.line(), e.message())
-        );
+        IO.print(scanResult.errors().stream()
+                .map(Lox::formatScanErr)
+                .collect(Collectors.joining("\n")) +
+                (scanResult.errors().isEmpty() ? "" : "\n"));
 
-        System.out.println((scanResult.tokens().stream()
-                .map(Token::toString)
+        IO.println((scanResult.tokens().stream()
+                .map(Token::toCompactString)
                 .collect(Collectors.joining("·"))));
     }
 
-    static void error(int line, String message) {
-        report(line, "", message);
-    }
-
-    private static void report(int line, String where, String message) {
-        System.out.printf("[line %d] Error %s: %s\n", line, where, message);
-        hadError = true;
+    static String formatScanErr(Scanner.ScanError e) {
+        return String.format("Scan error [%d:%d]: %s", e.loc().line(), e.loc().offset(), e.message());
     }
 }

@@ -11,6 +11,8 @@ public record Token(TokenType type, String lexeme, Object literal, int line) {
     public String toCompactString() {
         if (type == EOF)
             return "EOF";
+        if (type == IDENTIFIER)
+                return String.format("I<%s>", lexeme);
         return lexeme;
     }
 }
