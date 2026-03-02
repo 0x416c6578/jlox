@@ -1,4 +1,4 @@
-package com.alex.scanner;
+package com.alex.lox;
 
 public class ScannerUtils {
     public static boolean isDigit(char c) {

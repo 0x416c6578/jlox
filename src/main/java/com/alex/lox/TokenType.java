@@ -1,10 +1,10 @@
-package com.alex.scanner.v2;
+package com.alex.lox;
 
-public sealed interface TokenTypeV2 permits TokenTypeV2.T, TokenTypeV2.Ident, TokenTypeV2.StrLit, TokenTypeV2.NumLit {
+public sealed interface TokenType permits TokenType.Symbol, TokenType.Ident, TokenType.StrLit, TokenType.NumLit {
     String lexeme();
 
-    enum T implements TokenTypeV2 {
-        // Token type constants - use static import: import static TokenTypeV3.T.*
+    /// Non-literal / identifier tokens
+    enum Symbol implements TokenType {
         LEFT_PAREN("("), RIGHT_PAREN(")"), LEFT_BRACE("{"), RIGHT_BRACE("}"), COMMA(","), DOT("."), SEMICOLON(";"),
         PLUS("+"), MINUS("-"), STAR("*"), SLASH("/"),
         BANG("!"), BANG_EQUAL("!="), EQUAL("="), EQUAL_EQUAL("=="), GREATER(">"), GREATER_EQUAL(">="), LESS("<"), LESS_EQUAL("<="),
@@ -13,7 +13,7 @@ public sealed interface TokenTypeV2 permits TokenTypeV2.T, TokenTypeV2.Ident, To
 
         private final String value;
 
-        T(String value) {
+        Symbol(String value) {
             this.value = value;
         }
 
@@ -23,21 +23,24 @@ public sealed interface TokenTypeV2 permits TokenTypeV2.T, TokenTypeV2.Ident, To
         }
     }
 
-    record Ident(String name) implements TokenTypeV2 {
+    /// Identifier
+    record Ident(String name) implements TokenType {
         @Override
         public String lexeme() {
             return name;
         }
     }
 
-    record StrLit(String value) implements TokenTypeV2 {
+    /// String literal
+    record StrLit(String value) implements TokenType {
         @Override
         public String lexeme() {
             return value;
         }
     }
 
-    record NumLit(double value) implements TokenTypeV2 {
+    /// Numerical literal
+    record NumLit(double value) implements TokenType {
         @Override
         public String lexeme() {
             return String.valueOf(value);

@@ -1,3 +1,3 @@
-package com.alex.scanner.v3;
+package com.alex.lox;
 
 public record Location(int line, int offset) {}

@@ -1,7 +1,4 @@
-package com.alex;
-
-import com.alex.scanner.Scanner;
-import com.alex.scanner.Token;
+package com.alex.lox;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -59,7 +56,7 @@ class Lox {
                 (scanResult.errors().isEmpty() ? "" : "\n"));
 
         IO.println((scanResult.tokens().stream()
-                .map(Token::toCompactString)
+                .map(Token::lexeme)
                 .collect(Collectors.joining("·"))));
     }
 
