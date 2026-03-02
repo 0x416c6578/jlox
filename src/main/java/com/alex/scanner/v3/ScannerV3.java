@@ -1,4 +1,4 @@
-package com.alex.scanner.v2;
+package com.alex.scanner.v3;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,21 +6,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.alex.scanner.ScannerUtils.*;
-import static com.alex.scanner.v2.TokenTypeV2.*;
-import static com.alex.scanner.v2.TokenTypeV2.T.*;
+import static com.alex.scanner.v3.TokenType.T.*;
 
 /// Scanner for the Lox interpreter. The tokens of this language are found in [com.alex.scanner.TokenType]
-public class ScannerV2 {
-    public record ScanError(Loc loc, String message) {
+public class ScannerV3 {
+    public record ScanError(Location loc, String message) {
         @Override
         public String toString() {
             return String.format("Scan error [%d:%d]: %s", loc.line(), loc.offset(), message);
         }
     }
-    public record Loc(int line, int offset) {}
 
     private final String source;
-    private final List<TokenTypeV2> tokenTypeV2s = new ArrayList<>();
+    private final List<Token> tokens = new ArrayList<>();
     private final List<ScanError> errors = new ArrayList<>();
 
     private int start = 0; // index into source to the first char in the current lexeme being scanned
@@ -28,16 +26,16 @@ public class ScannerV2 {
     private int line = 1; // line number we are currently on
     private int lineOffset = 0; // offset into the current line, used for error reporting
 
-    public ScannerV2(String source) {
+    public ScannerV3(String source) {
         this.source = source;
     }
 
-    public record ScanResult(List<TokenTypeV2> tokenTypeV2s, List<ScanError> errors) {}
+    public record ScanResult(List<Token> tokens, List<ScanError> errors) {}
 
     static void main() {
-        ScannerV2 s = new ScannerV2("()hello world 123 123.45 \"string literal\" if else ! != = == < <= > >= / // comment");
+        var s = new ScannerV3("()hello world 123 123.45 \"string literal\" if else ! != = == < <= > >= / // comment");
 
-        ScanResult r = s.scanTokens();
+        var r = s.scanTokens();
 
         // Print any observed errors
         IO.print(r.errors().stream()
@@ -45,8 +43,8 @@ public class ScannerV2 {
                 .collect(Collectors.joining("\n")) +
                 (r.errors().isEmpty() ? "" : "\n"));
 
-        IO.println((r.tokenTypeV2s().stream()
-                .map(TokenTypeV2::lexeme)
+        IO.println((r.tokens().stream()
+                .map(Token::lexeme)
                 .collect(Collectors.joining("·"))));
     }
 
@@ -57,8 +55,8 @@ public class ScannerV2 {
             scanToken();
         }
 
-        tokenTypeV2s.add(EOF);
-        return new ScanResult(List.copyOf(tokenTypeV2s), List.copyOf(errors));
+        tokens.add(new Token(EOF, new Location(line, lineOffset)));
+        return new ScanResult(List.copyOf(tokens), List.copyOf(errors));
     }
 
     /// Scans source for the next token
@@ -89,7 +87,7 @@ public class ScannerV2 {
                 } else if (isAlpha(c)) {
                     identifier();
                 } else {
-                    errors.add(new ScanError(new Loc(line, lineOffset), "Unexpected character: " + c));
+                    errors.add(new ScanError(new Location(line, lineOffset), "Unexpected character: " + c));
                 }
             }
         }
@@ -145,7 +143,7 @@ public class ScannerV2 {
         }
 
         if (isEof()) {
-            errors.add(new ScanError(new Loc(line, lineOffset), "Unterminated string literal"));
+            errors.add(new ScanError(new Location(line, lineOffset), "Unterminated string literal"));
             return;
         }
 
@@ -161,8 +159,7 @@ public class ScannerV2 {
 
         // check to see whether we have a decimal point number
         if (peek() == '.' && isDigit(peekNext())) {
-            advance();
-            while (isDigit(peek())) advance();
+            do advance(); while (isDigit(peek()));
         }
 
         addToken(new NumLit(Double.parseDouble(source.substring(start, current))));
@@ -174,8 +171,8 @@ public class ScannerV2 {
         addToken(RESERVED_WORDS.getOrDefault(name, new Ident(name)));
     }
 
-    private void addToken(TokenTypeV2 t) {
-        tokenTypeV2s.add(t);
+    private void addToken(TokenType t) {
+        tokens.add(new Token(t, new Location(line, lineOffset)));
     }
 
     /// Returns true if we have hit the end of the source
@@ -183,7 +180,7 @@ public class ScannerV2 {
         return current >= source.length();
     }
 
-    static Map<String, TokenTypeV2> RESERVED_WORDS = Map.ofEntries(
+    static Map<String, TokenType> RESERVED_WORDS = Map.ofEntries(
             Map.entry("and", AND),
             Map.entry("class", CLASS),
             Map.entry("else", ELSE),

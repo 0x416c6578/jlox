@@ -1,9 +1,9 @@
 package com.alex.scanner.v2;
 
-public sealed interface Token permits Token.T, Token.Ident, Token.StrLit, Token.NumLit {
+public sealed interface TokenTypeV2 permits TokenTypeV2.T, TokenTypeV2.Ident, TokenTypeV2.StrLit, TokenTypeV2.NumLit {
     String lexeme();
 
-    enum T implements Token {
+    enum T implements TokenTypeV2 {
         // Token type constants - use static import: import static TokenTypeV3.T.*
         LEFT_PAREN("("), RIGHT_PAREN(")"), LEFT_BRACE("{"), RIGHT_BRACE("}"), COMMA(","), DOT("."), SEMICOLON(";"),
         PLUS("+"), MINUS("-"), STAR("*"), SLASH("/"),
@@ -23,21 +23,21 @@ public sealed interface Token permits Token.T, Token.Ident, Token.StrLit, Token.
         }
     }
 
-    record Ident(String name) implements Token {
+    record Ident(String name) implements TokenTypeV2 {
         @Override
         public String lexeme() {
             return name;
         }
     }
 
-    record StrLit(String value) implements Token {
+    record StrLit(String value) implements TokenTypeV2 {
         @Override
         public String lexeme() {
             return value;
         }
     }
 
-    record NumLit(double value) implements Token {
+    record NumLit(double value) implements TokenTypeV2 {
         @Override
         public String lexeme() {
             return String.valueOf(value);
