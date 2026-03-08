@@ -23,7 +23,7 @@ public class Scanner {
 
     private int start = 0; // index into source to the first char in the current lexeme being scanned
     private int current = 0; // index into source to the character currently being considered
-    private int line = 1; // line number we are currently on
+    private int line = 0; // line number we are currently on
     private int curentTokenStartLineOffset = 0; // line offset of the start of the current token, used for error reporting
     private int lineOffset = 0; // offset into the current line, used for error reporting
 
@@ -34,7 +34,7 @@ public class Scanner {
     public record ScanResult(List<Token> tokens, List<ScanError> errors) {}
 
     static void main() {
-        var s = new Scanner("  (  ) \"hi\" )");
+        var s = new Scanner("  (\n)");
 
         var r = s.scanTokens();
 

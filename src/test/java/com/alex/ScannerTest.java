@@ -12,6 +12,7 @@ import java.util.List;
 
 import static com.alex.lox.TokenType.Symbol.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static com.alex.testutils.TokenListBuilder.*;
 
 class ScannerTest {
     record Case<T, U>(T in, U expected) { }
@@ -20,7 +21,7 @@ class ScannerTest {
     // TODO: Fix non-single-character tokens scanning line offset calculation
     @ParameterizedTest
     @MethodSource("simpleScanTests")
-    void testScanTokens_simpleCases(Case<String, TokenType> tc) {
+    void testScanTokens_canScan_simpleValidCases(Case<String, TokenType> tc) {
         var scanner = new Scanner(tc.in);
         var r = scanner.scanTokens();
 
@@ -96,4 +97,114 @@ class ScannerTest {
         );
     }
 
+    @ParameterizedTest
+    @MethodSource("tokenLocationTests")
+    void test_scanTokens_tokenLocations(Case<String, List<Token>> tc) {
+        var scanner = new Scanner(tc.in);
+        var r = scanner.scanTokens();
+
+        assertEquals(tc.expected, r.tokens());
+    }
+
+    static List<Case<String, List<Token>>> tokenLocationTests() {
+        return List.of(
+                // Basic single character tokens
+                new Case<>("(", tlb().t(LEFT_PAREN, 0, 0).t(EOF, 0, 1).b()),
+                new Case<>("\n(", tlb().t(LEFT_PAREN, 1, 0).t(EOF, 1, 1).b()),
+                new Case<>("\n  (", tlb().t(LEFT_PAREN, 1, 2).t(EOF, 1, 3).b()),
+
+                // Multiple tokens on same line
+                new Case<>("( )", tlb().t(LEFT_PAREN, 0, 0).t(RIGHT_PAREN, 0, 2).t(EOF, 0, 3).b()),
+                new Case<>("(){}", tlb().t(LEFT_PAREN, 0, 0).t(RIGHT_PAREN, 0, 1).t(LEFT_BRACE, 0, 2).t(RIGHT_BRACE, 0, 3).t(EOF, 0, 4).b()),
+                new Case<>("  (  )  ", tlb().t(LEFT_PAREN, 0, 2).t(RIGHT_PAREN, 0, 5).t(EOF, 0, 8).b()),
+
+                // Multi-character operators
+                new Case<>("!=", tlb().t(BANG_EQUAL, 0, 0).t(EOF, 0, 2).b()),
+                new Case<>("==", tlb().t(EQUAL_EQUAL, 0, 0).t(EOF, 0, 2).b()),
+                new Case<>("<=", tlb().t(LESS_EQUAL, 0, 0).t(EOF, 0, 2).b()),
+                new Case<>(">=", tlb().t(GREATER_EQUAL, 0, 0).t(EOF, 0, 2).b()),
+                new Case<>("  !=  ", tlb().t(BANG_EQUAL, 0, 2).t(EOF, 0, 6).b()),
+
+                // Mixed single and multi-character operators
+                new Case<>("! =", tlb().t(BANG, 0, 0).t(EQUAL, 0, 2).t(EOF, 0, 3).b()),
+                new Case<>("!==", tlb().t(BANG_EQUAL, 0, 0).t(EQUAL, 0, 2).t(EOF, 0, 3).b()),
+
+                // String literals - single line
+                new Case<>("\"hello\"", tlb().t(new StrLit("hello"), 0, 0).t(EOF, 0, 7).b()),
+                new Case<>("  \"test\"  ", tlb().t(new StrLit("test"), 0, 2).t(EOF, 0, 10).b()),
+                new Case<>("\"\"", tlb().t(new StrLit(""), 0, 0).t(EOF, 0, 2).b()),
+                new Case<>("( \"str\" )", tlb().t(LEFT_PAREN, 0, 0).t(new StrLit("str"), 0, 2).t(RIGHT_PAREN, 0, 8).t(EOF, 0, 9).b()),
+
+                // String literals - multiline
+                new Case<>("\"line1\nline2\"", tlb().t(new StrLit("line1\nline2"), 0, 0).t(EOF, 1, 6).b()),
+                new Case<>("\"a\nb\nc\"", tlb().t(new StrLit("a\nb\nc"), 0, 0).t(EOF, 2, 2).b()),
+                new Case<>("  \"multi\nline\"  ", tlb().t(new StrLit("multi\nline"), 0, 2).t(EOF, 1, 7).b()),
+
+                // Number literals
+                new Case<>("123", tlb().t(new NumLit(123.0), 0, 0).t(EOF, 0, 3).b()),
+                new Case<>("123.45", tlb().t(new NumLit(123.45), 0, 0).t(EOF, 0, 6).b()),
+                new Case<>("  456  ", tlb().t(new NumLit(456.0), 0, 2).t(EOF, 0, 7).b()),
+                new Case<>("0.5", tlb().t(new NumLit(0.5), 0, 0).t(EOF, 0, 3).b()),
+                new Case<>("1+2", tlb().t(new NumLit(1.0), 0, 0).t(PLUS, 0, 1).t(new NumLit(2.0), 0, 2).t(EOF, 0, 3).b()),
+
+                // Identifiers
+                new Case<>("foo", tlb().t(new Ident("foo"), 0, 0).t(EOF, 0, 3).b()),
+                new Case<>("  bar  ", tlb().t(new Ident("bar"), 0, 2).t(EOF, 0, 7).b()),
+                new Case<>("foo123", tlb().t(new Ident("foo123"), 0, 0).t(EOF, 0, 6).b()),
+                new Case<>("_test", tlb().t(new Ident("_test"), 0, 0).t(EOF, 0, 5).b()),
+
+                // Keywords
+                new Case<>("if", tlb().t(IF, 0, 0).t(EOF, 0, 2).b()),
+                new Case<>("while", tlb().t(WHILE, 0, 0).t(EOF, 0, 5).b()),
+                new Case<>("  var  ", tlb().t(VAR, 0, 2).t(EOF, 0, 7).b()),
+                new Case<>("return", tlb().t(RETURN, 0, 0).t(EOF, 0, 6).b()),
+
+                // Multiple tokens across multiple lines
+                new Case<>("(\n)", tlb().t(LEFT_PAREN, 0, 0).t(RIGHT_PAREN, 1, 0).t(EOF, 1, 1).b()),
+                new Case<>("{\n  x\n}", tlb().t(LEFT_BRACE, 0, 0).t(new Ident("x"), 1, 2).t(RIGHT_BRACE, 2, 0).t(EOF, 2, 1).b()),
+                new Case<>("var x\nvar y", tlb().t(VAR, 0, 0).t(new Ident("x"), 0, 4).t(VAR, 1, 0).t(new Ident("y"), 1, 4).t(EOF, 1, 5).b()),
+
+                // Empty lines
+                new Case<>("\n\n(", tlb().t(LEFT_PAREN, 2, 0).t(EOF, 2, 1).b()),
+                new Case<>("(\n\n)", tlb().t(LEFT_PAREN, 0, 0).t(RIGHT_PAREN, 2, 0).t(EOF, 2, 1).b()),
+
+                // Comments
+                new Case<>("// comment\n(", tlb().t(LEFT_PAREN, 1, 0).t(EOF, 1, 1).b()),
+                new Case<>("( // comment", tlb().t(LEFT_PAREN, 0, 0).t(EOF, 0, 12).b()),
+                new Case<>("  // comment\n  (", tlb().t(LEFT_PAREN, 1, 2).t(EOF, 1, 3).b()),
+
+                // Complex expressions
+                new Case<>("x = 42", tlb().t(new Ident("x"), 0, 0).t(EQUAL, 0, 2).t(new NumLit(42.0), 0, 4).t(EOF, 0, 6).b()),
+                new Case<>("if (x == 10)",
+                        tlb().t(IF, 0, 0).t(LEFT_PAREN, 0, 3).t(new Ident("x"), 0, 4).t(EQUAL_EQUAL, 0, 6).t(new NumLit(10.0), 0, 9).t(RIGHT_PAREN, 0, 11).t(EOF, 0, 12).b()),
+                new Case<>("print \"hello\"", tlb().t(PRINT, 0, 0).t(new StrLit("hello"), 0, 6).t(EOF, 0, 13).b()),
+
+                // Consecutive operators
+                new Case<>("+-*/", tlb().t(PLUS, 0, 0).t(MINUS, 0, 1).t(STAR, 0, 2).t(SLASH, 0, 3).t(EOF, 0, 4).b()),
+                new Case<>("!===", tlb().t(BANG_EQUAL, 0, 0).t(EQUAL_EQUAL, 0, 2).t(EOF, 0, 4).b()),
+
+                // Complex multiline with mixed content
+                new Case<>("var name = \"John\"\nprint name",
+                        tlb().t(VAR, 0, 0).t(new Ident("name"), 0, 4).t(EQUAL, 0, 9).t(new StrLit("John"), 0, 11)
+                           .t(PRINT, 1, 0).t(new Ident("name"), 1, 6).t(EOF, 1, 10).b()),
+
+                // Indented code blocks
+                new Case<>("  if (true) {\n    print \"yes\"\n  }",
+                        tlb().t(IF, 0, 2).t(LEFT_PAREN, 0, 5).t(TRUE, 0, 6).t(RIGHT_PAREN, 0, 10).t(LEFT_BRACE, 0, 12)
+                           .t(PRINT, 1, 4).t(new StrLit("yes"), 1, 10)
+                           .t(RIGHT_BRACE, 2, 2).t(EOF, 2, 3).b()),
+
+                // All basic punctuation
+                new Case<>("(),;.+-*/{}",
+                        tlb().t(LEFT_PAREN, 0, 0).t(RIGHT_PAREN, 0, 1).t(COMMA, 0, 2).t(SEMICOLON, 0, 3)
+                           .t(DOT, 0, 4).t(PLUS, 0, 5).t(MINUS, 0, 6).t(STAR, 0, 7).t(SLASH, 0, 8)
+                           .t(LEFT_BRACE, 0, 9).t(RIGHT_BRACE, 0, 10).t(EOF, 0, 11).b()),
+
+                // Tab characters (treated as whitespace)
+                new Case<>("\t(\t)", tlb().t(LEFT_PAREN, 0, 1).t(RIGHT_PAREN, 0, 3).t(EOF, 0, 4).b()),
+
+                // Mixed whitespace
+                new Case<>("  \t  (  \t  )", tlb().t(LEFT_PAREN, 0, 5).t(RIGHT_PAREN, 0, 10).t(EOF, 0, 11).b())
+        );
+    }
 }
